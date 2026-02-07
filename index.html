@@ -1,0 +1,103 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Prestó - Hyperlocal Delivery</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --app-height: 100dvh;
+        --bg-main: #ffffff;
+        --bg-body: #FFF8E1;
+        --card-bg: #ffffff;
+        --text-main: #0f172a;
+        --text-muted: #64748b;
+        --border-color: #f1f5f9;
+        --header-bg: rgba(255, 255, 255, 0.95);
+      }
+
+      .dark {
+        --bg-main: #0f172a;
+        --bg-body: #020617;
+        --card-bg: #1e293b;
+        --text-main: #f8fafc;
+        --text-muted: #94a3b8;
+        --border-color: #334155;
+        --header-bg: rgba(15, 23, 42, 0.95);
+      }
+
+      body {
+        font-family: 'Inter', sans-serif;
+        -webkit-tap-highlight-color: transparent;
+        background-color: var(--bg-body);
+        color: var(--text-main);
+        height: var(--app-height);
+        overflow: hidden;
+        overscroll-behavior-y: none;
+        transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      ::selection {
+        background-color: #FACC15;
+        color: #000;
+      }
+      .premium-shadow {
+        box-shadow: 0 12px 30px -10px rgba(15, 23, 42, 0.08);
+      }
+      .dark .premium-shadow {
+        box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.3);
+      }
+      .safe-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+      html {
+        -webkit-text-size-adjust: 100%;
+      }
+      
+      /* Global Theme Transitions */
+      * {
+        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+      }
+
+      /* Splash Screen Animations */
+      @keyframes splashFadeOut {
+        from { opacity: 1; transform: scale(1); }
+        to { opacity: 0; transform: scale(1.1); visibility: hidden; }
+      }
+      .splash-exit {
+        animation: splashFadeOut 0.6s forwards ease-in-out;
+      }
+    </style>
+    <script>
+      // Initialize Tailwind dark mode to use class strategy
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@^19.2.4",
+    "@google/genai": "https://esm.sh/@google/genai@^1.40.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="antialiased">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

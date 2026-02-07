@@ -1,0 +1,7 @@
+{
+  "name": "Prestó Hyperlocal Delivery",
+  "description": "A high-fidelity mobile-first chat-based hyperlocal delivery application",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
