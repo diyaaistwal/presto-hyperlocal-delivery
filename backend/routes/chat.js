@@ -3,28 +3,48 @@ const router = express.Router();
 
 // POST /chat
 router.post('/', async (req, res) => {
-  const { message, partner } = req.body;
+  console.log("🔥 /chat endpoint hit");
+  console.log("Request Body:", req.body);
 
-  if (!message) {
-    return res.status(400).json({ error: "Message is required" });
+  try {
+    const { message, partner } = req.body;
+
+    // Validation
+    if (!message || typeof message !== "string") {
+      return res.status(400).json({ reply: "Message is required." });
+    }
+
+    const userMessage = message.toLowerCase();
+
+    // Smart temporary logic (MVP mode)
+    let reply = `Got it 👍 I'm checking that for you.`;
+
+    if (userMessage.includes("price")) {
+      reply = "Let me quickly check the price for you.";
+    }
+
+    else if (userMessage.includes("add")) {
+      reply = "Sure! Tell me which item you'd like to add.";
+    }
+
+    else if (userMessage.includes("confirm")) {
+      reply = "Here is your order summary. Total will be ₹250.";
+    }
+
+    else if (userMessage.includes("hello") || userMessage.includes("hi")) {
+      reply = `Hi! I'm ${partner || "your rider"}. What can I get for you today?`;
+    }
+
+    console.log("Reply Sent:", reply);
+
+    return res.json({ reply });
+
+  } catch (error) {
+    console.error("❌ Chat Route Error:", error);
+    return res.status(500).json({
+      reply: "Server error. Please try again."
+    });
   }
-
-  // Temporary smart reply logic
-  let reply = "I'm on it 👍";
-
-  if (message.toLowerCase().includes("price")) {
-    reply = "Let me check the price for you.";
-  }
-
-  if (message.toLowerCase().includes("add")) {
-    reply = "Sure, tell me what item you'd like to add.";
-  }
-
-  if (message.toLowerCase().includes("confirm")) {
-    reply = "Here is your order summary. Total will be ₹250.";
-  }
-
-  res.json({ reply });
 });
 
 module.exports = router;
