@@ -1,47 +1,48 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 
 // POST /chat
-router.post('/', async (req, res) => {
-  console.log("🔥 /chat endpoint hit");
-  console.log("Request Body:", req.body);
-
+router.post("/", async (req, res) => {
   try {
     const { message, partner } = req.body;
 
-    // Validation
+    // 🔴 Validation
     if (!message || typeof message !== "string") {
       return res.status(400).json({ reply: "Message is required." });
     }
 
     const userMessage = message.toLowerCase();
 
-    // Smart temporary logic (MVP mode)
-    let reply = `Got it 👍 I'm checking that for you.`;
+    let reply = "Got it 👍 I'm checking that for you.";
 
+    // 🧠 Basic intent logic
     if (userMessage.includes("price")) {
-      reply = "Let me quickly check the price for you.";
-    }
-
+      reply = "Let me check the price for you.";
+    } 
+    
     else if (userMessage.includes("add")) {
-      reply = "Sure! Tell me which item you'd like to add.";
-    }
-
+      reply = "Sure! What item would you like to add?";
+    } 
+    
     else if (userMessage.includes("confirm")) {
-      reply = "Here is your order summary. Total will be ₹250.";
-    }
-
+      reply = "Your order is confirmed. Total is ₹250.";
+    } 
+    
     else if (userMessage.includes("hello") || userMessage.includes("hi")) {
-      reply = `Hi! I'm ${partner || "your rider"}. What can I get for you today?`;
+      reply = `Hi! I'm ${partner || "your delivery partner"}. What can I get for you today?`;
     }
 
-    console.log("Reply Sent:", reply);
-
-    return res.json({ reply });
+    // 🟢 Response
+    return res.json({
+      success: true,
+      reply
+    });
 
   } catch (error) {
-    console.error("❌ Chat Route Error:", error);
+    console.error("Chat error:", error);
+
     return res.status(500).json({
+      success: false,
       reply: "Server error. Please try again."
     });
   }
