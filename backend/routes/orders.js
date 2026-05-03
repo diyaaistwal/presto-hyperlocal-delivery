@@ -12,7 +12,6 @@ router.post('/', (req, res) => {
     status: 'searching',
     createdAt: new Date().toISOString()
   };
-  store.orders.push(newOrder);
   res.status(201).json(newOrder);
 });
 
