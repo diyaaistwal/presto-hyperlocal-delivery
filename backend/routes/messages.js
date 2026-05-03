@@ -13,7 +13,6 @@ router.post('/', (req, res) => {
     text,
     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
   };
-  store.messages.push(newMessage);
   res.status(201).json(newMessage);
 });
 
