@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Message, Partner } from '../types';
 
@@ -22,22 +23,20 @@ export const ChatView: React.FC<ChatProps> = ({
   const getTime = () =>
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-  // 🟩 CREATE ORDER ON START
+  // 🟩 CREATE ORDER + AUTO MESSAGE
   useEffect(() => {
     if (!initialRequest) return;
 
-    // show first message
-    setMessages([
-      {
-        id: "1",
-        sender: "user",
-        text: initialRequest,
-        timestamp: getTime(),
-        type: "text"
-      }
-    ]);
+    const firstMsg = {
+      id: "1",
+      sender: "user",
+      text: initialRequest,
+      timestamp: getTime(),
+      type: "text"
+    };
 
-    // create order in DB
+    setMessages([firstMsg]);
+
     fetch("https://presto-backend-ckt0.onrender.com/orders", {
       method: "POST",
       headers: {
@@ -49,26 +48,48 @@ export const ChatView: React.FC<ChatProps> = ({
     })
       .then(res => res.json())
       .then(data => {
-        console.log("ORDER CREATED:", data);
         setOrderId(data._id);
+
+        // 🔥 AUTO MESSAGE
+        setTimeout(() => {
+          const autoReply = {
+            id: "auto1",
+            sender: "partner",
+            text: `Hi! I'm ${partner.name}. I've accepted your order 🚀`,
+            timestamp: getTime(),
+            type: "text"
+          };
+
+          setMessages(prev => [...prev, autoReply]);
+
+          // save auto reply
+          fetch("https://presto-backend-ckt0.onrender.com/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId: data._id,
+              sender: "partner",
+              text: autoReply.text
+            })
+          });
+        }, 800);
       })
       .catch(err => console.log("Order error:", err));
 
-  }, [initialRequest]);
+  }, [initialRequest, partner]);
 
   // 🟩 SEND MESSAGE
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    // 🔴 WAIT FOR ORDER
     if (!orderId) {
-      alert("Please wait... initializing order");
+      alert("Please wait...");
       return;
     }
 
     const text = input;
 
-    // add user message to UI
+    // show user message
     setMessages(prev => [
       ...prev,
       {
@@ -82,26 +103,20 @@ export const ChatView: React.FC<ChatProps> = ({
 
     setInput("");
 
-    console.log("USING ORDER ID:", orderId);
-
     // save user message
-    try {
-      await fetch("https://presto-backend-ckt0.onrender.com/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          orderId,
-          sender: "user",
-          text
-        })
-      });
-    } catch (err) {
-      console.log("Message save error:", err);
-    }
+    await fetch("https://presto-backend-ckt0.onrender.com/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        orderId,
+        sender: "user",
+        text
+      })
+    });
 
-    // call chat API
+    // get reply
     let reply = "Got it 👍";
 
     try {
@@ -117,18 +132,13 @@ export const ChatView: React.FC<ChatProps> = ({
       });
 
       const data = await res.json();
-
-      reply =
-        data?.reply ||
-        data?.message ||
-        "Got it 👍";
+      reply = data?.reply || "Got it 👍";
 
     } catch (err) {
-      console.log("Chat error:", err);
-      reply = "Server error. Try again.";
+      reply = "Server error.";
     }
 
-    // show reply in UI
+    // show reply
     setMessages(prev => [
       ...prev,
       {
@@ -141,21 +151,17 @@ export const ChatView: React.FC<ChatProps> = ({
     ]);
 
     // save reply
-    try {
-      await fetch("https://presto-backend-ckt0.onrender.com/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          orderId,
-          sender: "partner",
-          text: reply
-        })
-      });
-    } catch (err) {
-      console.log("Reply save error:", err);
-    }
+    await fetch("https://presto-backend-ckt0.onrender.com/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        orderId,
+        sender: "partner",
+        text: reply
+      })
+    });
   };
 
   return (
@@ -205,4 +211,3 @@ export const ChatView: React.FC<ChatProps> = ({
     </div>
   );
 };
-
