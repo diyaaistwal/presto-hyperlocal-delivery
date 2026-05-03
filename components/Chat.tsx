@@ -1,249 +1,175 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Message, Order, Partner } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Message, Partner } from '../types';
 
 interface ChatProps {
   partner?: Partner | null;
   initialRequest: string;
   onClose: () => void;
-  onOrderPlaced: (order: Order) => void;
 }
 
 export const ChatView: React.FC<ChatProps> = ({
   partner,
   initialRequest,
-  onClose,
-  onOrderPlaced
+  onClose
 }) => {
 
   if (!partner) return null;
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [showQuickReplies, setShowQuickReplies] = useState(false);
-  const [totalAmount, setTotalAmount] = useState(0);
-
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [orderId, setOrderId] = useState<string | null>(null);
 
   const getTime = () =>
     new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+  // 🟩 CREATE ORDER ON START
   useEffect(() => {
     if (!initialRequest) return;
 
-    const firstMsg: Message = {
-      id: 'init',
-      sender: 'user',
-      text: initialRequest,
-      timestamp: getTime(),
-      type: 'text'
-    };
+    // Show first message
+    setMessages([
+      {
+        id: "1",
+        sender: "user",
+        text: initialRequest,
+        timestamp: getTime(),
+        type: "text"
+      }
+    ]);
 
-    setMessages([firstMsg]);
+    // 🔥 Create order in DB
+    fetch("https://presto-backend-ckt0.onrender.com/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        userRequest: initialRequest
+      })
+    })
+      .then(res => res.json())
+      .then(data => {
+        setOrderId(data._id);
+      });
 
-    setTimeout(() => {
-      setIsTyping(true);
-      setTimeout(() => {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: 'welcome',
-            sender: 'partner',
-            text: `Hi! I'm ${partner.name}. I'm heading to the store 🚀`,
-            timestamp: getTime(),
-            type: 'text'
-          }
-        ]);
-        setIsTyping(false);
-      }, 1000);
-    }, 800);
-  }, [initialRequest, partner]);
+  }, [initialRequest]);
 
-  const handleSend = async (custom?: string) => {
-    const text = custom || input.trim();
-    if (!text) return;
+  // 🟩 SEND MESSAGE
+  const handleSend = async () => {
+    if (!input.trim()) return;
 
-    const userMsg: Message = {
-      id: Date.now().toString(),
-      sender: 'user',
-      text,
-      timestamp: getTime(),
-      type: 'text'
-    };
+    const text = input;
 
-    setMessages(prev => [...prev, userMsg]);
-    setInput('');
-    setShowQuickReplies(false);
-    setIsTyping(true);
-
-    try {
-      const res = await fetch(
-        "https://presto-backend-ckt0.onrender.com/chat",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: text,
-            partner: partner.name
-          })
-        }
-      );
-
-      const data = await res.json();
-
-      const reply = data.reply || "Got it 👍";
-
-      const partnerMsg: Message = {
+    // Add message to UI
+    setMessages(prev => [
+      ...prev,
+      {
         id: Date.now().toString(),
-        sender: 'partner',
+        sender: "user",
+        text,
+        timestamp: getTime(),
+        type: "text"
+      }
+    ]);
+
+    setInput("");
+
+    // 🔥 Save user message
+    if (orderId) {
+      await fetch("https://presto-backend-ckt0.onrender.com/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          orderId,
+          sender: "user",
+          text
+        })
+      });
+    }
+
+    // 🔥 Call chat API
+    const res = await fetch("https://presto-backend-ckt0.onrender.com/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: text,
+        partner: partner.name
+      })
+    });
+
+    const data = await res.json();
+    const reply = data.reply || "Got it 👍";
+
+    // Add reply to UI
+    setMessages(prev => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        sender: "partner",
         text: reply,
         timestamp: getTime(),
-        type: 'text'
-      };
-
-      setMessages(prev => [...prev, partnerMsg]);
-
-      // Trigger order summary UI if reply contains summary/total
-      if (
-        reply.toLowerCase().includes("summary") ||
-        reply.toLowerCase().includes("total")
-      ) {
-        const summary: Message = {
-          id: 'summary',
-          sender: 'system',
-          timestamp: getTime(),
-          type: 'order-summary',
-          summaryData: {
-            store: "Fresh Mart",
-            items: [
-              { name: "Milk", price: 60 },
-              { name: "Bread", price: 40 }
-            ],
-            deliveryFee: partner.deliveryFee,
-            serviceCharge: 10,
-            total: 110 + partner.deliveryFee
-          }
-        };
-
-        setMessages(prev => [...prev, summary]);
-        setTotalAmount(110 + partner.deliveryFee);
+        type: "text"
       }
+    ]);
 
-    } catch (err) {
-      setMessages(prev => [
-        ...prev,
-        {
-          id: "error",
-          sender: "system",
-          text: "⚠️ Server not reachable",
-          timestamp: getTime(),
-          type: "text"
-        }
-      ]);
-    } finally {
-      setIsTyping(false);
+    // 🔥 Save reply to DB
+    if (orderId) {
+      await fetch("https://presto-backend-ckt0.onrender.com/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          orderId,
+          sender: "partner",
+          text: reply
+        })
+      });
     }
   };
 
-  const quickReplies = [
-    "Check price",
-    "Add item",
-    "Confirm order",
-    "Cancel item"
-  ];
-
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-slate-900">
+    <div className="flex flex-col h-full bg-white">
 
       {/* HEADER */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex justify-between p-4 border-b">
         <button onClick={onClose}>←</button>
-        <div>
-          <h2 className="font-bold">{partner.name}</h2>
-          <p className="text-xs text-gray-400">★ {partner.rating}</p>
-        </div>
-        <div className="font-bold">₹{totalAmount || '--'}</div>
+        <h2>{partner.name}</h2>
+        <div></div>
       </div>
 
       {/* MESSAGES */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 p-4 overflow-y-auto space-y-3">
         {messages.map(msg => (
-          <div key={msg.id}>
-            {msg.type === "text" && (
-              <div
-                className={`max-w-[80%] p-3 rounded-2xl ${
-                  msg.sender === "user"
-                    ? "ml-auto bg-black text-white"
-                    : "bg-gray-100"
-                }`}
-              >
-                {msg.text}
-              </div>
-            )}
-
-            {msg.type === "order-summary" && msg.summaryData && (
-              <div className="bg-black text-white p-5 rounded-3xl">
-                <h4 className="font-bold mb-3">
-                  {msg.summaryData.store}
-                </h4>
-
-                {msg.summaryData.items.map((item, i) => (
-                  <div key={i} className="flex justify-between text-sm">
-                    <span>{item.name}</span>
-                    <span>₹{item.price}</span>
-                  </div>
-                ))}
-
-                <div className="border-t mt-3 pt-3 flex justify-between font-bold">
-                  <span>Total</span>
-                  <span>₹{msg.summaryData.total}</span>
-                </div>
-              </div>
-            )}
+          <div
+            key={msg.id}
+            className={`p-3 rounded-xl max-w-[75%] ${
+              msg.sender === "user"
+                ? "ml-auto bg-black text-white"
+                : "bg-gray-200"
+            }`}
+          >
+            {msg.text}
           </div>
         ))}
-
-        {isTyping && (
-          <div className="text-gray-400 text-sm">Typing...</div>
-        )}
-
-        <div ref={messagesEndRef}></div>
       </div>
 
-      {/* QUICK REPLIES */}
-      {showQuickReplies && (
-        <div className="flex gap-2 overflow-x-auto p-2">
-          {quickReplies.map((q, i) => (
-            <button
-              key={i}
-              onClick={() => handleSend(q)}
-              className="px-4 py-2 bg-amber-200 rounded-xl text-xs"
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-      )}
-
       {/* INPUT */}
-      <div className="p-4 border-t flex gap-2">
-        <button
-          onClick={() => setShowQuickReplies(!showQuickReplies)}
-          className="px-3 bg-gray-200 rounded-xl"
-        >
-          +
-        </button>
-
+      <div className="flex p-3 border-t gap-2">
         <input
-          className="flex-1 border rounded-xl px-3 py-2"
+          className="flex-1 border px-3 py-2 rounded-xl"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={e => e.key === "Enter" && handleSend()}
-          placeholder="Message your rider..."
+          placeholder="Type message..."
         />
 
         <button
-          onClick={() => handleSend()}
+          onClick={handleSend}
           className="bg-black text-white px-4 rounded-xl"
         >
           Send
