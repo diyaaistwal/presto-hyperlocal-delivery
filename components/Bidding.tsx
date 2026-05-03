@@ -1,4 +1,4 @@
-```tsx
+
 import React from 'react';
 import { Partner } from '../types';
 
@@ -70,4 +70,4 @@ export const BiddingView: React.FC<BiddingProps> = ({ onClose, onSelectPartner }
     </div>
   );
 };
-```
+
