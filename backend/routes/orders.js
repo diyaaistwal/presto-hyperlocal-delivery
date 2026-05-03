@@ -1,26 +1,48 @@
-const Order = require("../models/Order");
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const store = require('../store');
+const Order = require("../models/Order");
 
-// POST /orders - Create a new order
-router.post('/', (req, res) => {
-  const { request } = req.body;
-  const newOrder = {
-    id: 'ord_' + Math.random().toString(36).substr(2, 9),
-    request,
-    status: 'searching',
-    createdAt: new Date().toISOString()
-  };
-  const order = await Order.create({
-  userRequest: req.body.userRequest
-});
-  res.status(201).json(newOrder);
+
+// 🟩 POST /orders → Create order
+router.post("/", async (req, res) => {
+  try {
+    const { userRequest } = req.body;
+
+    const order = await Order.create({
+      userRequest,
+      status: "pending"
+    });
+
+    res.status(201).json(order);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// GET /orders - Get all orders
-router.get('/', (req, res) => {
-  res.json(store.orders);
+
+// 🟩 GET /orders → Get all orders
+router.get("/", async (req, res) => {
+  try {
+    const orders = await Order.find();
+    res.json(orders);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+
+
+// 🟩 GET /orders/:id → Get single order
+router.get("/:id", async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    res.json(order);
+
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 module.exports = router;
