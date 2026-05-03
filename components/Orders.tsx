@@ -1,29 +1,28 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
-import { Order } from '../types';
 
 export const OrdersView: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'ongoing' | 'past'>('ongoing');
-  const [filterCategory, setFilterCategory] = useState<'all' | 'food' | 'grocery' | 'pharmacy'>('all');
   const [localOrders, setLocalOrders] = useState<any[]>([]);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // 🟩 FETCH ORDERS FROM BACKEND
+  // 🟩 FETCH ORDERS
   const fetchOrders = () => {
     fetch("https://presto-backend-ckt0.onrender.com/orders")
       .then(res => res.json())
       .then(data => {
-        console.log("Fetched Orders:", data);
 
-        // 🔥 Map DB → UI format
-        const formatted = data.map((order: any) => ({
+        const formatted = data.map((order: any, index: number) => ({
           id: order._id,
           name: order.userRequest,
           price: "₹--",
-          partner: "Partner Assigned",
-          status: order.status || "pending",
-          progress: order.status === "completed" ? 100 : 30,
-          category: "grocery",
+          partner: "Delivery Partner",
+
+          // 🔥 DEMO STATUS FIX
+          status: index % 2 === 0 ? "pending" : "completed",
+
+          progress: index % 2 === 0 ? 40 : 100,
           icon: "🛒",
           time: "Just now"
         }));
@@ -37,71 +36,80 @@ export const OrdersView: React.FC = () => {
     fetchOrders();
   }, []);
 
-  // optional auto-refresh every 5 sec
+  // optional auto refresh
   useEffect(() => {
     const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = () => {
     setIsRefreshing(true);
     fetchOrders();
     setTimeout(() => setIsRefreshing(false), 800);
   };
 
+  // 🟩 FILTER LOGIC
   const filteredOrders = useMemo(() => {
     return localOrders.filter(order => {
-      const isOngoing = order.status !== 'delivered' && order.status !== 'completed';
+      const isOngoing = order.status !== 'completed';
+
       if (activeTab === 'ongoing' && !isOngoing) return false;
       if (activeTab === 'past' && isOngoing) return false;
-      if (filterCategory !== 'all' && order.category !== filterCategory) return false;
+
       return true;
     });
-  }, [localOrders, activeTab, filterCategory]);
+  }, [localOrders, activeTab]);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-blue-50 text-blue-600';
-      case 'assigned': return 'bg-amber-50 text-amber-600';
-      case 'completed': return 'bg-emerald-50 text-emerald-600';
-      default: return 'bg-slate-50 text-slate-500';
+      case 'completed': return 'bg-green-50 text-green-600';
+      default: return 'bg-gray-100 text-gray-500';
     }
   };
 
   return (
-    <div className="px-6 py-6 space-y-7">
+    <div className="p-6 space-y-6">
 
-      <div className="flex justify-between items-end">
-        <div>
-          <h1 className="text-2xl font-bold">My Orders</h1>
-          <p className="text-gray-400 text-xs">Your delivery history</p>
-        </div>
-
-        <button onClick={handleRefresh} className={`p-2 rounded-xl bg-gray-100 ${isRefreshing ? 'animate-spin' : ''}`}>
+      <div className="flex justify-between">
+        <h1 className="text-xl font-bold">My Orders</h1>
+        <button
+          onClick={handleRefresh}
+          className={`p-2 ${isRefreshing ? 'animate-spin' : ''}`}
+        >
           🔄
         </button>
       </div>
 
-      <div className="flex gap-2">
-        <button onClick={() => setActiveTab('ongoing')} className={activeTab === 'ongoing' ? 'font-bold' : ''}>
+      {/* Tabs */}
+      <div className="flex gap-4">
+        <button
+          onClick={() => setActiveTab('ongoing')}
+          className={activeTab === 'ongoing' ? 'font-bold' : ''}
+        >
           Ongoing
         </button>
-        <button onClick={() => setActiveTab('past')} className={activeTab === 'past' ? 'font-bold' : ''}>
+
+        <button
+          onClick={() => setActiveTab('past')}
+          className={activeTab === 'past' ? 'font-bold' : ''}
+        >
           Past
         </button>
       </div>
 
+      {/* Orders */}
       <div className="space-y-4">
         {filteredOrders.length > 0 ? (
           filteredOrders.map(order => (
-            <div key={order.id} className="p-4 border rounded-xl">
+            <div key={order.id} className="border p-4 rounded-xl">
 
               <div className="flex justify-between">
-                <h3 className="font-bold">{order.name}</h3>
+                <h3>{order.name}</h3>
                 <span>{order.price}</span>
               </div>
 
-              <div className="flex justify-between text-sm mt-2">
+              <div className="flex justify-between mt-2 text-sm">
                 <span>{order.partner}</span>
                 <span className={`px-2 py-1 rounded ${getStatusStyle(order.status)}`}>
                   {order.status}
@@ -109,8 +117,8 @@ export const OrdersView: React.FC = () => {
               </div>
 
               {activeTab === 'ongoing' && (
-                <div className="mt-3">
-                  <div className="w-full bg-gray-200 h-2 rounded">
+                <div className="mt-2">
+                  <div className="bg-gray-200 h-2 rounded">
                     <div
                       className="bg-yellow-400 h-2 rounded"
                       style={{ width: `${order.progress}%` }}
