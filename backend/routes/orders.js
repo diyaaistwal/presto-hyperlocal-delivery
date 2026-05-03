@@ -12,6 +12,9 @@ router.post('/', (req, res) => {
     status: 'searching',
     createdAt: new Date().toISOString()
   };
+  const order = await Order.create({
+  userRequest: req.body.userRequest
+});
   res.status(201).json(newOrder);
 });
 
