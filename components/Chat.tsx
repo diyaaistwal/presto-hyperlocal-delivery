@@ -26,7 +26,7 @@ export const ChatView: React.FC<ChatProps> = ({
   useEffect(() => {
     if (!initialRequest) return;
 
-    // Show first message
+    // show first message
     setMessages([
       {
         id: "1",
@@ -37,7 +37,7 @@ export const ChatView: React.FC<ChatProps> = ({
       }
     ]);
 
-    // 🔥 Create order in DB
+    // create order in DB
     fetch("https://presto-backend-ckt0.onrender.com/orders", {
       method: "POST",
       headers: {
@@ -49,8 +49,10 @@ export const ChatView: React.FC<ChatProps> = ({
     })
       .then(res => res.json())
       .then(data => {
+        console.log("ORDER CREATED:", data);
         setOrderId(data._id);
-      });
+      })
+      .catch(err => console.log("Order error:", err));
 
   }, [initialRequest]);
 
@@ -58,9 +60,15 @@ export const ChatView: React.FC<ChatProps> = ({
   const handleSend = async () => {
     if (!input.trim()) return;
 
+    // 🔴 WAIT FOR ORDER
+    if (!orderId) {
+      alert("Please wait... initializing order");
+      return;
+    }
+
     const text = input;
 
-    // Add message to UI
+    // add user message to UI
     setMessages(prev => [
       ...prev,
       {
@@ -74,8 +82,10 @@ export const ChatView: React.FC<ChatProps> = ({
 
     setInput("");
 
-    // 🔥 Save user message
-    if (orderId) {
+    console.log("USING ORDER ID:", orderId);
+
+    // save user message
+    try {
       await fetch("https://presto-backend-ckt0.onrender.com/messages", {
         method: "POST",
         headers: {
@@ -87,24 +97,38 @@ export const ChatView: React.FC<ChatProps> = ({
           text
         })
       });
+    } catch (err) {
+      console.log("Message save error:", err);
     }
 
-    // 🔥 Call chat API
-    const res = await fetch("https://presto-backend-ckt0.onrender.com/chat", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: text,
-        partner: partner.name
-      })
-    });
+    // call chat API
+    let reply = "Got it 👍";
 
-    const data = await res.json();
-    const reply = data.reply || "Got it 👍";
+    try {
+      const res = await fetch("https://presto-backend-ckt0.onrender.com/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: text,
+          partner: partner.name
+        })
+      });
 
-    // Add reply to UI
+      const data = await res.json();
+
+      reply =
+        data?.reply ||
+        data?.message ||
+        "Got it 👍";
+
+    } catch (err) {
+      console.log("Chat error:", err);
+      reply = "Server error. Try again.";
+    }
+
+    // show reply in UI
     setMessages(prev => [
       ...prev,
       {
@@ -116,8 +140,8 @@ export const ChatView: React.FC<ChatProps> = ({
       }
     ]);
 
-    // 🔥 Save reply to DB
-    if (orderId) {
+    // save reply
+    try {
       await fetch("https://presto-backend-ckt0.onrender.com/messages", {
         method: "POST",
         headers: {
@@ -129,6 +153,8 @@ export const ChatView: React.FC<ChatProps> = ({
           text: reply
         })
       });
+    } catch (err) {
+      console.log("Reply save error:", err);
     }
   };
 
@@ -170,7 +196,8 @@ export const ChatView: React.FC<ChatProps> = ({
 
         <button
           onClick={handleSend}
-          className="bg-black text-white px-4 rounded-xl"
+          disabled={!orderId}
+          className="bg-black text-white px-4 rounded-xl disabled:opacity-50"
         >
           Send
         </button>
@@ -178,3 +205,4 @@ export const ChatView: React.FC<ChatProps> = ({
     </div>
   );
 };
+
